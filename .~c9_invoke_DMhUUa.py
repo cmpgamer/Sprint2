@@ -18,7 +18,8 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 def connect_to_db():
-    return psycopg2.connect('dbname=movie_recommendations user=movie_normal password=password host=localhost')
+    # return psycopg2.connect('dbname=movie_recommendations user=movieAdmin password=password host=localhost')
+    return psycopg2.connect('dbname=movie_recommendations user=postgres password=Cmpgamer1 host=localhost')
     
 @socketio.on('connect', namespace='/movie')
 def makeConnection():
@@ -30,11 +31,13 @@ def on_identify(user):
     print('Identify: ' + user)
     users[session['uuid']] = {'username' : user}
     
+    
 movieSearchQuery = "SELECT movie_title FROM movie_titles WHERE movie_title LIKE %s" 
 newMovieSearch = "select mt.movie_title,  my.year from movie_titles mt join movie_years my on mt.id = my.movie_id WHERE movie_title LIKE %s"
 movieGenreSearch = "select mt.movie_title, mg.movie_genre from movie_titles mt join movie_genres mg on mt.id = mg.movie_id WHERE movie_title LIKE %s"
 @socketio.on('search', namespace='/movie')
 def search(searchItem):
+    
 
     db = connect_to_db()
     cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -43,6 +46,8 @@ def search(searchItem):
     results = []
     queryResults = []
     searchTerm = '%{0}%'.format(searchItem)
+    
+    #print(searchTerm)
     
     try:
         cur.execute(newMovieSearch, (searchTerm,))
@@ -59,21 +64,27 @@ def search(searchItem):
     movieGenres = {}
     copyGenres = genreResults
     parsedResults = []
-    movieList = {}
-    prevMovie = None
-    for movie in genreResults:
-        if prevMovie is not None and prevMovie[0] == movie[0]:
-            movieList[movie[0]].append(movie[1])
-        else:
-            movieList[movie[0]] = [movie[1]]
-            prevMovie = movie
+    
+    for i in range(len(genreResults)):
+        for j in range(len(copyGenres)):
+            if genreResults[i][0] == copyGenres[j][0] and i != j:
+                movie[1] += movie2[1]
+                
+    
+                
+            
+      
+    
+    print(genreResults)
+    
     
     for i in range(len(results)):
+        
         resultsDict = {'text' : results[i]['movie_title'], 'year' : results[i]['year']}
-        if results[i]['movie_title'] in movieList:
-            resultsDict['genres'] = movieList[results[i]['movie_title']]
         queryResults.append(resultsDict)
-
+    
+    #print(queryResults)
+     
     cur.close()
     db.close()
     emit('searchResults', queryResults)
@@ -117,7 +128,6 @@ def register():
                     try:
                         cur.execute(registerNewUser, (firstName, lastName, username, password)) # add user to database
                         db.commit()
-                        
                     except Exception as e:
                         print("Error: Invalid INSERT in 'user' table: %s" % e)
             except Exception as e:
@@ -133,9 +143,9 @@ def register():
         pass
         # flash error message
         
-    return redirect(url_for('index'))
+    return render_template(redirectPage, error=error)
     
-loginQuery = 'SELECT users.id, users.username, count(movie_ratings.*) AS ratings FROM users LEFT JOIN movie_ratings ON users.id = movie_ratings.user_id WHERE users.username = %s AND users.password = crypt(%s, password) GROUP BY users.id    '
+loginQuery = 'SELECT * from users WHERE username = %s AND password = crypt(%s, password)'
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     redirectPage = 'landing.html'
@@ -147,6 +157,7 @@ def login():
         db = connect_to_db()
         cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
         username = request.form['username']
+        
         pw = request.form['password']
 
         try:
@@ -157,15 +168,14 @@ def login():
         
         cur.close()
         db.close()
-        print(results)
+        
         if not results: # user does not exist
             error += 'Incorrect username or password.\n'
         else:
+            print(results['username'])
             session['username'] = results['username']
             session['id'] = results['id']
-            session['ratings'] = results['ratings']
             results = []
-            print(session)
             return redirect(url_for('index'))
          
     if len(error) != 0:
@@ -174,44 +184,46 @@ def login():
         
     return render_template(redirectPage, error=error)
 
-# @app.route('/landing',  methods=['GET', 'POST'])
-# def landing():
+@app.route('/landing',  methods=['GET', 'POST'])
+def landing():
    
-#     if 'username' in session:
-#         print("landing")
-#         db = connect_to_db()
-#         cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-#         #get dynamic top 12
-#         query = "SELECT movie_titles.movie_title, movie_ratings.rating FROM movie_titles INNER JOIN movie_ratings ON movie_titles.id=movie_ratings.movie_id ORDER BY movie_ratings.rating DESC LIMIT 12;"
-#         #print("are we getting here?????????????")
-#         try:
-#             cur.execute(query)
-#             results=cur.fetchall()
-#         except Exception, e:
-#             raise e
-#         return render_template('index.html', results=results)
-#     else:
-#         print("landing")
-#         return render_template('landing.html')
+    if 'username' in session:
+        print("index")
+        db = connect_to_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        #get dynamic top 12
+        query = "SELECT movie_titles.movie_title, movie_ratings.rating FROM movie_titles INNER JOIN movie_ratings ON movie_titles.id=movie_ratings.movie_id ORDER BY movie_ratings.rating DESC LIMIT 12;"
+        #print("are we getting here?????????????")
+        try:
+            cur.execute(query)
+            results=cur.fetchall()
+        except Exception, e:
+            raise e
+        return render_template('index.html', results=results)
+    else:
+        return render_template('landing.html')
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
    
     if 'username' in session:
-      
+        print("index")
         db = connect_to_db()
         cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        #get dynamic top 12
         query = "SELECT movie_titles.movie_title, movie_ratings.rating FROM movie_titles INNER JOIN movie_ratings ON movie_titles.id=movie_ratings.movie_id ORDER BY movie_ratings.rating DESC LIMIT 12;"
+        #print("are we getting here?????????????")
         try:
             cur.execute(query)
             results=cur.fetchall()
         except Exception, e:
+            
             raise e
+            
         
         return render_template('index.html', results=results)
     else:
-        
         return render_template('landing.html')    
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -221,9 +233,8 @@ def logout():
     
 movieRatingQuery = "SELECT mt.movie_title as movie_id, u.id, mr.rating FROM movie_ratings mr JOIN users u on u.id = mr.user_id JOIN movie_titles mt ON mt.id = mr.movie_id"
 movieIDQuery = "SELECT * FROM movie_titles"
-@socketio.on('recommend', namespace='/movie')
-def recommend(test):
-    print("Do I get here?")
+@app.route('/recommend', methods=['GET', 'POST'])
+def recommend():
     redirectPage = 'recommendations.html'
     data = {}
     productid2name = {}
@@ -259,68 +270,39 @@ def recommend(test):
     movieLens = recommender(5, 15) #Manhattan Distance 5 Nearest Neighbors
     movieLens.data = data
     results = movieLens.recommend(session['id'])
-    print(results)
-    queryResults = []
-    for i,movie in enumerate(results):
-        queryResults.append({'text': movie[0], 'rank': str(i+1)})
-        
-    print(queryResults)
-    
-    emit('recommendationResults', queryResults)
 
-getMovieIDQuery= "SELECT movie_titles.id FROM movie_titles JOIN movie_years ON movie_titles.id = movie_years.movie_id WHERE movie_title = %s AND year = %s"
-insertRateQuery= "INSERT INTO movie_ratings VALUES(default, %s, %s, %s)"
-## default, movie_id, user_id, movie_review
-insertReviewQuery="INSERT INTO movie_reviews VALUES(default, %s, %s, %s)"
+    return render_template(redirectPage)
+
+getMovieIDQuery= "SELECT id FROM movie_titles WHERE movie_title= %s "
+insertRateQuery= "INSERT INTO movie_ratings VALUES(default,%s,%s,%s)" 
 
 @app.route('/rateMovie', methods=['GET', 'POST'])
 def rateMovie():
-    redirectPage= "index.html"
+    #insert 
     
+    print("test1")
+    
+    db = connect_to_db()
+    cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    #insert movie, insert review
+    #movie with person id into movie_rating table
+    #person id, movie, rating
     if request.method == 'POST':
-        db = connect_to_db()
-        cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        
-        movie_title= request.form['moviename'] #both queries
-        rating = request.form['movierating'] #insertRateQuery
-        review = request.form['moviereview']
-        year = request.form['movieyear']
-        # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        # print(rating)
-        # print(year)
-        # print(session['id'])
-        # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        movie_title= request.form['moviename']
+        print("test")
+        print(movie_title)
         try:
-            cur.execute(getMovieIDQuery, (movie_title, year))
-            movieID = cur.fetchone()
+            cur.execute(getMovieIDQuery, (movie_title,))
+            results = cur.fetchone()
         except Exception as e:
             print(e)
-    
-        
-        #
-        # Work out logic to prevent people from rating movies twice.
-        #
-        if rating:
-            try:
-                cur.execute(insertRateQuery, (session['id'], movieID['id'], rating))
-                db.commit()
-                session['ratings'] += 1
-            except Exception as e:
-                
-                print(e)
-        else:
-            pass
-        
-        if review:
-            try:
-                cur.execute(insertReviewQuery, (movieID['id'], session['id'], review))
-            except Exception as e:
-                
-                print(e)
-        else:
-            pass
-        
-    return redirect(url_for('index'))
+        # try:
+        #     cur.execute(insertRateQuery, (movie_title
+        # except Exception as e:
+        #    print(e)
+        #print(results)
+    return render_template(redirectPage)
 
 
     

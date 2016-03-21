@@ -19,6 +19,7 @@ socketio = SocketIO(app)
 
 def connect_to_db():
     return psycopg2.connect('dbname=movie_recommendations user=movie_normal password=password host=localhost')
+    # return psycopg2.connect('dbname=movie_recommendations user=postgres password=Cmpgamer1 host=localhost')
     
 @socketio.on('connect', namespace='/movie')
 def makeConnection():
@@ -29,6 +30,7 @@ def makeConnection():
 def on_identify(user):
     print('Identify: ' + user)
     users[session['uuid']] = {'username' : user}
+    
     
 movieSearchQuery = "SELECT movie_title FROM movie_titles WHERE movie_title LIKE %s" 
 newMovieSearch = "select mt.movie_title,  my.year from movie_titles mt join movie_years my on mt.id = my.movie_id WHERE movie_title LIKE %s"
@@ -73,7 +75,10 @@ def search(searchItem):
         if results[i]['movie_title'] in movieList:
             resultsDict['genres'] = movieList[results[i]['movie_title']]
         queryResults.append(resultsDict)
-
+    
+    
+    print(queryResults)
+     
     cur.close()
     db.close()
     emit('searchResults', queryResults)
@@ -117,7 +122,6 @@ def register():
                     try:
                         cur.execute(registerNewUser, (firstName, lastName, username, password)) # add user to database
                         db.commit()
-                        
                     except Exception as e:
                         print("Error: Invalid INSERT in 'user' table: %s" % e)
             except Exception as e:
@@ -133,9 +137,9 @@ def register():
         pass
         # flash error message
         
-    return redirect(url_for('index'))
+    return render_template(redirectPage, error=error)
     
-loginQuery = 'SELECT users.id, users.username, count(movie_ratings.*) AS ratings FROM users LEFT JOIN movie_ratings ON users.id = movie_ratings.user_id WHERE users.username = %s AND users.password = crypt(%s, password) GROUP BY users.id    '
+loginQuery = 'SELECT * from users WHERE username = %s AND password = crypt(%s, password)'
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     redirectPage = 'landing.html'
@@ -157,15 +161,14 @@ def login():
         
         cur.close()
         db.close()
-        print(results)
+        
         if not results: # user does not exist
             error += 'Incorrect username or password.\n'
         else:
+            print(results['username'])
             session['username'] = results['username']
             session['id'] = results['id']
-            session['ratings'] = results['ratings']
             results = []
-            print(session)
             return redirect(url_for('index'))
          
     if len(error) != 0:
@@ -174,44 +177,46 @@ def login():
         
     return render_template(redirectPage, error=error)
 
-# @app.route('/landing',  methods=['GET', 'POST'])
-# def landing():
+@app.route('/landing',  methods=['GET', 'POST'])
+def landing():
    
-#     if 'username' in session:
-#         print("landing")
-#         db = connect_to_db()
-#         cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-#         #get dynamic top 12
-#         query = "SELECT movie_titles.movie_title, movie_ratings.rating FROM movie_titles INNER JOIN movie_ratings ON movie_titles.id=movie_ratings.movie_id ORDER BY movie_ratings.rating DESC LIMIT 12;"
-#         #print("are we getting here?????????????")
-#         try:
-#             cur.execute(query)
-#             results=cur.fetchall()
-#         except Exception, e:
-#             raise e
-#         return render_template('index.html', results=results)
-#     else:
-#         print("landing")
-#         return render_template('landing.html')
+    if 'username' in session:
+        print("index")
+        db = connect_to_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        #get dynamic top 12
+        query = "SELECT movie_titles.movie_title, movie_ratings.rating FROM movie_titles INNER JOIN movie_ratings ON movie_titles.id=movie_ratings.movie_id ORDER BY movie_ratings.rating DESC LIMIT 12;"
+        #print("are we getting here?????????????")
+        try:
+            cur.execute(query)
+            results=cur.fetchall()
+        except Exception, e:
+            raise e
+        return render_template('index.html', results=results)
+    else:
+        return render_template('landing.html')
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
    
     if 'username' in session:
-      
+        print("index")
         db = connect_to_db()
         cur = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        #get dynamic top 12
         query = "SELECT movie_titles.movie_title, movie_ratings.rating FROM movie_titles INNER JOIN movie_ratings ON movie_titles.id=movie_ratings.movie_id ORDER BY movie_ratings.rating DESC LIMIT 12;"
+        #print("are we getting here?????????????")
         try:
             cur.execute(query)
             results=cur.fetchall()
         except Exception, e:
+            
             raise e
+            
         
         return render_template('index.html', results=results)
     else:
-        
         return render_template('landing.html')    
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -259,10 +264,10 @@ def recommend(test):
     movieLens = recommender(5, 15) #Manhattan Distance 5 Nearest Neighbors
     movieLens.data = data
     results = movieLens.recommend(session['id'])
-    print(results)
+    queryResuylts
     queryResults = []
-    for i,movie in enumerate(results):
-        queryResults.append({'text': movie[0], 'rank': str(i+1)})
+    for i,movie in results:
+        queryResults.append({'text': movie[0]})
         
     print(queryResults)
     
@@ -304,7 +309,6 @@ def rateMovie():
             try:
                 cur.execute(insertRateQuery, (session['id'], movieID['id'], rating))
                 db.commit()
-                session['ratings'] += 1
             except Exception as e:
                 
                 print(e)

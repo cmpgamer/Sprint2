@@ -1,5 +1,5 @@
 <html ng-app="MovieApp">
-  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
   <meta http-equiv="X-UA-Compatible" content="chrome=1">
   <meta name="viewport" content="width=device-width">
   <title>UMW Reviews</title>
@@ -7,12 +7,12 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-theme.css') }}">
 
   <meta name="viewport" content="width=device-width">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-  <script src="https://code.angularjs.org/1.4.9/angular.min.js"></script>
-  <script src="https://rawgit.com/dwmkerr/angular-modal-service/master/dst/angular-modal-service.js"></script>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
-  <script src="{{ url_for('static', filename='js/controller.js') }}"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.0-beta.2/angular-sanitize.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js" charset="utf-8"></script>
+  <script src="https://code.angularjs.org/1.4.9/angular.min.js" charset="utf-8"></script>
+  <script src="https://rawgit.com/dwmkerr/angular-modal-service/master/dst/angular-modal-service.js" charset="utf-8"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js" charset="utf-8"></script>
+  <script src="{{ url_for('static', filename='js/controller.js') }}" charset="utf-8"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.0-beta.2/angular-sanitize.js" charset="utf-8"></script>
   
   <header>
     
@@ -38,19 +38,19 @@
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav">
-                <li {% if current_page == 'home' %} class="active" {% endif %}><a href="#">Home <span class="sr-only">(current)</span></a></li>
-                
-                  <li><a href="#" data-toggle="modal" data-target="#searchModal">Search for Movies</a></li>
+               <li><a href="#" data-toggle="modal" data-target="#searchModal">Search for Movies</a></li>
               </ul>
-              
               <ul class="nav navbar-nav navbar-right">
                 {% if 'username' not in session %}
                   <li><a href="#" data-toggle="modal" data-target="#registerModal">Register</a></li>
                   <li><a href="#" data-toggle="modal" data-target="#loginModal">Login</a></li>
-                  <li><a href="/recommend">Reco</a></li>
                 {% else %}
+                {% if session['ratings'] > 0 %}
+                <li>
+                  <a href="javascript:void()" id="recommendMovie" ng-click="recommend()">Recommend Movies</a>
+                </li>
+                {% endif %}
                 <li class="dropdown">
-                  
                   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{ session['username'] }}<span class="caret"></span></a>
                   <ul class="dropdown-menu">
                     <li><a href="/logout">Logout</a></li>
@@ -58,7 +58,6 @@
                 </li>
                 {% endif %}  
               </ul>
-              
               </ul>
             </div><!-- /.navbar-collapse -->
           </div><!-- /.container-fluid -->
@@ -68,7 +67,6 @@
         <div class="row">
           {% block content %}
           {% endblock %}
-          
         </div>  
       </div>
       
@@ -76,7 +74,6 @@
       <div id="loginModal" class="modal fade" role="dialog">
         <form action="/login" role="form" method="POST">
           <div class="modal-dialog">
-        
             <!-- Modal content-->
             <div class="modal-content">
               <div class="modal-header">
@@ -108,14 +105,12 @@
           </div>
         </form>
       </div>
-   
       <!-- End Login Modal -->
       
       <!-- Begin Search Modal -->
       <div id="searchModal" class="modal fade" role="dialog">
         <!--<form role="search" ng-submit="search()">-->
           <div class="modal-dialog">
-        
             <!-- Modal content-->
             <div class="modal-content">
               <div class="modal-header">
@@ -124,36 +119,30 @@
               </div>
               <div class="modal-body">
                 <!-- bootstrap forms begin -->
-                
                 <div class="form-group">
                   <label for="search">Search by Name</label>
                   <input type="text" name="search" id="search" ng-model="text" class="form-control" placeholder="Search...">
                 </div>
-                
                 <div class="panel panel-default" style="display:hidden" id="searchResultsPanel">
                   <div class="panel panel-primary" style="margin:1em" ng-repeat="result in searchResults" >
                     <div class="panel-body">
                       <div class="row">
                         <div class="col-md-8">
                           <div class="ng-scope" style="vertical-align:middle;">
-                            <span ng-bind="result.text"></span>
+                            <p><strong>Movie Title: </strong><span ng-bind="result.text"></span></p>
+                            <p><strong>Release Year: </strong><span ng-bind="result.year"></span></p>
+                            <p><strong>Movie Genres: </strong><span ng-bind="result.genres"></span></p>
                           </div>
-                        </div>  
-                        <div class="col-md-2">
-                          
-                            <button class="btn btn-primary"  data-toggle="modal" data-target="#rateModal" data-dismiss="modal" ng-click="rate(result)">Rate</button>
-                            
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-danger text-center" style="width:100%;height:3em" type="text" id="search" ng-click="result.id" >Hate</button>
+                        {% if 'username' in session %}
+                        <div class="col-md-4">
+                          <button id="closeSearch" class="btn btn-primary" ng-click="rate(result)">Rate and Review</button>
                         </div>
+                        {% endif %} 
                       </div>
-                      
                     </div>
                   </div>  
                 </div>
-                
-                
               </div>
               <div class="modal-footer">
                 <div class="row">
@@ -225,10 +214,9 @@
     <!-- End Register Modal -->
     
     <div id="rateModal" class="modal fade" role="dialog">
-        <form action="/login" role="form" method="POST">
+        <form action="/rateMovie" role="form" method="POST">
           <div class="ng-scope">
           <div class="modal-dialog">
-        
             <!-- Modal content-->
             <div class="modal-content">
               <div class="modal-header">
@@ -238,12 +226,19 @@
               <div class="modal-body">
                 <!-- bootstrap forms begin -->
                 <div class="form-group">
-                  <label for="username">Username:</label>
+                  <label for="moviename">Movie Title:</label>
                   <div ng-bind-html="rateText"> </div>
                 </div>
                 <div class="form-group">
-                  <label for="password">Password:</label>
-                  <input type="password" class="form-control" name="password" id="password" placeholder="Password">
+                  <div ng-bind-html="year"> </div>
+                </div>
+                <div class="form-group">
+                  <label for="movierating">Rating (1 to 5):</label>
+                  <input type="number" class="form-control" name="movierating" id="movierating" min="1" max="5"step="0.5">
+                </div>
+                <div class="form-group">
+                  <label for="moviereview">Review:</label>
+                  <textarea class="form-control" name="moviereview" id="moviereview" rows="5"></textarea>
                 </div>
               </div>
               <div class="modal-footer">
@@ -252,7 +247,7 @@
                     <button type="button" class="btn btn-danger" data-dismiss="modal" style="width:100%;">Close</button>    
                   </div>
                   <div class="col-md-6">
-                    <button type="submit" class="btn btn-primary"  style="width:100%;margin-bottom:5px;" >Log in</button>
+                    <button type="submit" class="btn btn-primary"  style="width:100%;margin-bottom:5px;">Rate</button>
                   </div>
                 </div>
               </div>
@@ -262,6 +257,36 @@
         </form>
       </div>
       
+      
+      <div id="recommendationModal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Movie Recommendations</h4>
+          </div>
+          
+          <div class="modal-body">
+           <div class="panel panel-primary" ng-repeat="row in recommendationResults">
+            <div class="panel-body">
+                <div class="ng-scope">
+                    <b ng-bind="row.rank"></b>:&nbsp;
+                    <span ng-bind="row.text"></span>
+                </div>
+              </div>
+            </div>
+         </div>
+          <div class="modal-footer">
+            <div class="row">
+              <div class="col-md-6">
+                <button type="button" class="btn btn-danger" data-dismiss="modal" style="width:100%;">Close</button>    
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- jQuery library -->
     
     <script src="{{ url_for('static', filename='js/npm.js') }}" ></script>

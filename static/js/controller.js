@@ -9,6 +9,9 @@ movieApp.controller('SearchController', function($scope, $sce){
     $scope.rating = '';
     $scope.rateResults = [];
     $scope.rateText = '';
+    $scope.movieGenres = [];
+    $scope.year = '';
+    $scope.recommendationResults = []
     
     $scope.search = function search(){
         console.log('Search result: ', $scope.text);
@@ -25,13 +28,34 @@ movieApp.controller('SearchController', function($scope, $sce){
         }
         for(var i = 0; i < results.length; i++){
             console.log(results[i]);
+            console.log(results[i]['genres']);
             $scope.searchResults.push(results[i]);
-            // $("searchResultsPanel").animate({
-            //     height: '+=5em'
-            // });
+            var genreString = "";
+            for(let genre of results[i]['genres']){
+                genreString +=  genre + ", ";
+            }
+            var newStr = genreString.substring(0, genreString.length-2);
+            console.log(newStr);
+            results[i]['genres'] = newStr;
         }
         $scope.$apply();
         $scope.searchResults = [];
+    });
+    
+    $scope.recommend = function recommend(){
+        console.log("I get here");
+        socket.emit('recommend', 'recommend');
+    };
+    
+    socket.on('recommendationResults', function(results){
+        $("#recommendationModal").modal('show');
+        for(var i = 0; i < results.length; i++){
+            console.log(results[i]);
+            
+            $scope.recommendationResults.push(results[i]);
+            
+        }
+        $scope.$apply();
     });
     
     $scope.setName = function setName(){
@@ -42,23 +66,24 @@ movieApp.controller('SearchController', function($scope, $sce){
        console.log('Connected'); 
     });
     
-    
-     $scope.rate = function rate(result){
+    $scope.rate = function rate(result){
         console.log('Rating: ', result);
-        socket.emit('rate', result);
+        
+        console.log(result);
+        $("#searchModal").modal('hide');
+        
+        var text = '<input class="form-control" type="text" name="moviename" id="moviename" value=' + '"' + result['text'] +'">'
+        var yearText = '<input class="form-control" type="hidden" name="movieyear" id="movieyear" value=' + '"' + result['year'] +'">'
+        console.log(text);
+        $scope.rateText = $sce.trustAsHtml(text);
+        $scope.year = $sce.trustAsHtml(yearText);
+        console.log($scope.rateText);
+        $("#rateModal").modal('show');
         $scope.text = '';
     };
     
-    socket.on('rateResults', function(results){
-        console.log("I am here");
-        console.log(results[0]['text']);
-         
-        var text = '<input class="form-control" type="text" name="moviename"  value=' + '"' + results[0]['text'] +'">'
-        $scope.rateText = $sce.trustAsHtml(text);
-        console.log($scope.rateText);
-        $scope.$apply();
-        
-    });
+    
     
 });
+
 

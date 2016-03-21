@@ -10,17 +10,14 @@
         <h4>You can review movies or get movie recommendations.</h4>
       </div>
     </div>
-    
     <img src="{{ url_for('static', filename='images/img1.jpg') }}" class="img-responsive center-block"  alt="Image 1" />
-    
   </div>
-  
   <div class="col-md-4">
     <div class="panel panel-default" style="height:41em">
       <div class="panel-heading text-center">
         <h4>Top 12 Movies by Rating</h4>
         <h6>Because we go 2 steps further!</h6>
-        <h6>Never gonna give you up, never gonna let you down, never gonna turn around, and rate you!</h6>
+        <h6></h6>
       </div>
       <div class="panel-body text-center">
         <div class="row">
@@ -39,19 +36,10 @@
             <p>12</p>
           </div>
           <div class="col-xs-10">
-            <p>Pokemon 2000</p>
-            <p>Anchorman</p>
-            <p>The Avengers</p>
-            <p>Tangled</p>
-            <p>Frozen</p>
-            <p>Rat Race</p>
-            <p>Labyrinth</p>
-            <p>Super Mario Bros</p>
-            <p>Star Wars Episode VII</p>
-            <p>Deadpool</p>
-            <p>Lord of the Rings: The Two Towers</p>
-            <p>The Lion King</p>
-          </div>          
+            {% for result in results %}
+              <p>{{ result['movie_title'] }}</p>
+            {% endfor %}
+          </div>  
         </div>
       </div>
     </div>
