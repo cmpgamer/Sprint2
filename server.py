@@ -30,9 +30,9 @@ def on_identify(user):
     print('Identify: ' + user)
     users[session['uuid']] = {'username' : user}
     
-movieSearchQuery = "SELECT movie_title FROM movie_titles WHERE movie_title LIKE %s" 
-newMovieSearch = "select mt.movie_title,  my.year from movie_titles mt join movie_years my on mt.id = my.movie_id WHERE movie_title LIKE %s"
-movieGenreSearch = "select mt.movie_title, mg.movie_genre from movie_titles mt join movie_genres mg on mt.id = mg.movie_id WHERE movie_title LIKE %s"
+movieSearchQuery = "SELECT movie_title, id FROM movie_titles WHERE movie_title LIKE %s" 
+newMovieSearch = "select mt.movie_title, my.year, mt.id from movie_titles mt join movie_years my on mt.id = my.movie_id WHERE movie_title LIKE %s"
+movieGenreSearch = "select mt.id, mg.movie_genre from movie_titles mt join movie_genres mg on mt.id = mg.movie_id WHERE mt.movie_title LIKE %s"
 @socketio.on('search', namespace='/movie')
 def search(searchItem):
 
@@ -64,16 +64,19 @@ def search(searchItem):
     for movie in genreResults:
         if prevMovie is not None and prevMovie[0] == movie[0]:
             movieList[movie[0]].append(movie[1])
+            
         else:
             movieList[movie[0]] = [movie[1]]
             prevMovie = movie
-    
+            
     for i in range(len(results)):
         resultsDict = {'text' : results[i]['movie_title'], 'year' : results[i]['year']}
-        if results[i]['movie_title'] in movieList:
-            resultsDict['genres'] = movieList[results[i]['movie_title']]
+        print(results[i]['movie_title'], results[i]['id'])
+        if results[i]['id'] in movieList:
+            resultsDict['genres'] = movieList[results[i]['id']]
         queryResults.append(resultsDict)
-
+    
+    print(queryResults)
     cur.close()
     db.close()
     emit('searchResults', queryResults)
